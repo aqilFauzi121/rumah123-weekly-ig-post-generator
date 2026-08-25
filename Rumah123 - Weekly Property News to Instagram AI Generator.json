@@ -1,0 +1,495 @@
+{
+  "name": "Rumah123 - Weekly Property News to Instagram AI Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fc76ef8d-2662-47d7-8d16-f5b23192ddc0",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "path": "0aef24b6-95dd-43d2-ad22-e92640c8a57d",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -144
+      ],
+      "id": "24e6a641-bf68-4de3-bf84-c05afcc1fccf",
+      "name": "Webhook",
+      "webhookId": "0aef24b6-95dd-43d2-ad22-e92640c8a57d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "YOUR_TAVILY_API_KEY_HERE"
+            },
+            {
+              "name": "query",
+              "value": "Tren suku bunga KPR, kebijakan properti, dan perumahan suburban terkini di Indonesia"
+            },
+            {
+              "name": "max_results",
+              "value": "5"
+            },
+            {
+              "name": "topic",
+              "value": "news"
+            },
+            {
+              "name": "days",
+              "value": "7"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        144,
+        0
+      ],
+      "id": "ca90c50a-e5d1-49a6-839f-dea950e502cc",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1344,
+        48
+      ],
+      "id": "4f4826a0-27b8-49a8-90ca-2e217f6ae60d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "url": "=https://image.pollinations.ai/prompt/{{ encodeURIComponent($json.output) }}?width=1080&height=1350&nologo=true&model=flux",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1184,
+        -144
+      ],
+      "id": "5531275d-922d-457a-95e6-cc913b43c35d",
+      "name": "Image generator (Pollinations.ai)"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1488,
+        48
+      ],
+      "id": "4a8e7b55-1765-45dc-9c34-2eef6d42ec6f",
+      "name": "Send a photo message",
+      "webhookId": "4b8955ce-0952-449e-b849-347fbc809020",
+      "credentials": {
+        "telegramApi": {
+          "id": "qBd1iBi4ucTDM92h",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "={{ $('Creative Writing Agent').item.json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1664,
+        48
+      ],
+      "id": "c71ef4e0-9565-45cb-80c2-230291d84359",
+      "name": "Send a text message",
+      "webhookId": "9e7beaab-1c27-417c-b332-5f5ed7a90984",
+      "credentials": {
+        "telegramApi": {
+          "id": "qBd1iBi4ucTDM92h",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxRetries": 30
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        304,
+        208
+      ],
+      "id": "491c03ec-6d41-4208-9c74-9921492c2d07",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "DNCyWzBkzczdHsyi",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# ROLE & IDENTITY\nYou are a Senior Property Research Analyst at Rumah123.\n\n# INPUT DATA\n{{ JSON.stringify($json.results) }}\n\n# TASK\n1. Analyze the RAW NEWS DATA above.\n2. Select 1 single news item that is most impactful for first-time home buyers aged 26-33.\n3. Extract core facts and key figures.\n4. Explain what the news or policy means in plain terms for an everyday buyer's budget and lifestyle.\n\n# OUTPUT FORMAT (JSON only):\n{\n  \"selected_topic\": \"Topic Title\",\n  \"key_facts\": \"Clear summary of core facts, numbers, and their simple practical meaning\",\n  \"target_relevance\": \"Why this matters directly to 26-33 year old first-time buyers\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        0
+      ],
+      "id": "2b5fc01e-b743-42df-9e10-abbc6c720b25",
+      "name": "Research Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# ROLE & IDENTITY\nYou are the Lead Content Strategist and Creative Director for Rumah123.\n\n# INPUT RESEARCH DATA\n{{ $json.output }}\n\n# TASK\nApply Rumah123 brand identity to formulate two distinct strategy briefs based on the research data above:\n1. Visual Strategy Brief: Define the core visual concept, mood, lighting, main headline, and sub-headline.\n2. Copywriting Brief: Define the conversational tone of voice, hook direction, practical explanation points for first-time buyers aged 26-33, call to action, and hashtag guidelines.\n\n# STRATEGY GUIDELINES\n- Focus on real-life concerns of young buyers such as home affordability, down payment, daily commute, and long-term comfort.\n- Avoid corporate jargon and press-release phrasing in the brief.\n\n# OUTPUT FORMAT (JSON only):\n{\n  \"visual_brief\": {\n    \"concept\": \"Visual description of a modern Indonesian suburban home with natural lighting and no text on image\",\n    \"headline\": \"Catchy and relatable headline text\",\n    \"subheadline\": \"Brief complementary sub-headline\"\n  },\n  \"copywriting_brief\": {\n    \"hook_angle\": \"Angle that touches a relatable dilemma or question\",\n    \"key_points\": \"Simple, practical points explained without heavy economic terms\",\n    \"cta_direction\": \"Clear call to action for Rumah123\",\n    \"hashtags_guide\": \"5 relevant property hashtags\"\n  }\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        576,
+        0
+      ],
+      "id": "3896db3b-903a-41ed-9492-ec0672ed9e32",
+      "name": "Planner Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# ROLE & IDENTITY\nYou are an expert AI Image Prompt Engineer specializing in photorealistic architectural and lifestyle photography for real estate.\n\n# INPUT VISUAL BRIEF\n{{ $json.output }}\n\n# TASK\nConvert the visual brief above into a single, highly detailed English text-to-image prompt suitable for generative models such as Imagen, Flux, and Midjourney.\n\n# PROMPT CRAFTING RULES\n- Style: Ultra-realistic 35mm DSLR photography, 8k resolution, soft natural morning sunlight.\n- Subject and Setting: Modern Indonesian suburban housing cluster, cozy homey aesthetic, lush greenery.\n- Strict Negative Constraints: Do NOT include any text, typography, signs, watermarks, logo overlays, artificial 3D renders, or distorted limbs.\n\n# OUTPUT FORMAT:\nOutput ONLY the raw image prompt string directly without markdown wrappers, explanations, or introductory text.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        880,
+        -144
+      ],
+      "id": "48d3fbe6-c782-4807-a24c-39a7f834e943",
+      "name": "Image Prompt Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# ROLE & IDENTITY\nYou are a Social Media Copywriter for Rumah123 who talks directly to young first-time home buyers aged 26-33.\n\n# INPUT STRATEGY BRIEF\n{{ $json.output }}\n\n# TASK\nWrite an engaging, conversational Instagram caption based on the copywriting brief above.\n\n# TONE AND STYLE GUIDELINES\n- Tone: Warm, casual, friendly, practical, and easy to understand for everyday people.\n- Style: Write like a helpful friend sharing home-buying tips over coffee, not like a formal news reporter or corporate PR.\n- Sentence Structure: Keep sentences short, simple, and comfortable to read on a mobile screen.\n- Use natural Indonesian conjunctions and avoid literal English structures like \"- ia\" or direct pronoun translations for objects.\n\n# STRICT NEGATIVE CONSTRAINTS (PANTANGAN KATA KAKU)\n- DO NOT use formal news or press-release jargon. Strictly avoid words like: geliat, mobilitas, komersial, mendongkrak, percepatan, infrastruktur publik, holiday rental, second-tier, roda ekonomi, terbukti ampuh.\n- DO NOT sound like an academic textbook. Replace heavy concepts with simple daily words (for example: use \"rumah sewa liburan\" or \"staycation\" instead of \"holiday rental\", use \"kota berkembang\" instead of \"second-tier\").\n\n# CAPTION STRUCTURE\n1. Hook: 1-2 opening lines that touch a relatable dilemma or common daily situation.\n2. Body: 2-3 short paragraphs explaining the practical takeaways simply, separated by blank lines.\n3. Call to Action: Friendly invitation to comment and explore property options on Rumah123.com.\n4. Hashtags: Exactly 5 relevant hashtags at the bottom.\n\n# LENGTH\nStrictly 140-170 words.\n\n# OUTPUT FORMAT:\nOutput ONLY the final Instagram caption text ready to post, including hashtags. Do not include introductory notes, labels, or explanations.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        896,
+        112
+      ],
+      "id": "7e81eef4-4236-42f8-b350-0c07aeca2742",
+      "name": "Creative Writing Agent"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxRetries": 30
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        576,
+        240
+      ],
+      "id": "4de55157-26ef-47a9-88ac-5579f8d052d9",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "DNCyWzBkzczdHsyi",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxRetries": 30
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        896,
+        336
+      ],
+      "id": "667e3cff-91b6-4d3d-870a-9c0ddabd1dff",
+      "name": "OpenRouter Chat Model2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "DNCyWzBkzczdHsyi",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxRetries": 30
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        752,
+        352
+      ],
+      "id": "5cbb0cf9-616f-4ee7-bfef-d30267779bc3",
+      "name": "OpenRouter Chat Model3",
+      "credentials": {
+        "openRouterApi": {
+          "id": "DNCyWzBkzczdHsyi",
+          "name": "OpenRouter account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image generator (Pollinations.ai)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Send a photo message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    },
+    "Send a photo message": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Planner Agent": {
+      "main": [
+        [
+          {
+            "node": "Image Prompt Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Creative Writing Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Agent": {
+      "main": [
+        [
+          {
+            "node": "Planner Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Prompt Agent": {
+      "main": [
+        [
+          {
+            "node": "Image generator (Pollinations.ai)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creative Writing Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Planner Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Creative Writing Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Image Prompt Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c71ff854-4a63-4188-b907-f384331c305f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "14dac045ccbb7d452e04bdb1dbbb36dcab1c6e99bbb089b16276adafff247cff"
+  },
+  "nodeGroups": [],
+  "id": "ZewlV6o8VNh60RJ1",
+  "tags": []
+}
