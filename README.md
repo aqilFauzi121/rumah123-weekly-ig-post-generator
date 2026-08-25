@@ -46,18 +46,28 @@ Model selection went through a bit of trial and error. The first version pinned 
 
 Tavily is used for the news search because it's held up reliably for this kind of real-time retrieval task, and it's a pattern several other n8n builders use for similar research-agent setups.
 
-For image generation, Pollinations.ai was picked mainly because this is currently a proof-of-concept build with no budget for paid image models. The output doesn't have to be the final asset though — it works fine as-is for posting directly, or as a reference image a graphic designer can refine if the project later moves to a paid model with better photorealism.
+For image generation, Pollinations.ai was picked mainly because this is currently a proof-of-concept build with no budget for paid image models. That said, the output doesn't have to stay a draft forever: it works fine for posting as-is, or as a reference image a graphic designer can refine if the project later moves to a paid model with better photorealism.
 
 One implementation detail worth noting: the Merge node uses `combineByPosition`, so the Image Prompt Agent branch and Creative Writing Agent branch (which run in parallel off the Planner Agent) need to stay in sync by item order, otherwise the photo and caption could get mismatched.
 
 ---
 
+## 🔭 Future Improvements
+
+If this moves past the proof-of-concept stage, the image model is probably the first thing I'd swap out. Pollinations.ai works fine for a draft, but a paid option like the Midjourney API or DALL-E 3 would get closer to publish-ready quality, especially for architectural proportions.
+
+After that, auto-publishing would save the most manual work. Right now everything stops at Telegram for review, so someone still has to copy the caption and upload the photo by hand. Hooking up the Instagram Graph API, plus the equivalent for LinkedIn and Facebook Pages, would let approved posts go out on their own once someone gives the green light.
+
+A couple of smaller things worth adding too: automatically stamping the Rumah123 logo and headline onto the photo before it reaches the review channel (something like Bannerbear could handle that), and an Approve/Regenerate button right inside Telegram via Webhook Callback, so approving a post doesn't mean switching apps. Longer term, it'd also be nice if the Creative Writing Agent could output more than just a single caption per run, things like carousel copy or a short Reels script from the same research input.
+
+---
+
 ## ⚠️ Known Limitations
 
-- **Free-tier rate limits:** even with `openrouter/free` and `maxRetries: 30`, free-model capacity is shared across everyone using it, so runs can occasionally slow down or fail during high demand.
-- **Output consistency:** since the model is auto-selected per run, caption tone and image style can shift a bit from one execution to the next.
-- **Image quality ceiling:** Pollinations.ai (FLUX.1) output is treated as a draft or reference image, not something guaranteed to be publish-ready without a quick human check.
-- **No auto-posting:** the workflow stops at Telegram delivery on purpose. A human still reviews and manually publishes to Instagram instead of the pipeline posting directly.
+- Even with `openrouter/free` and `maxRetries: 30`, free-model capacity is shared across everyone using it, so runs can occasionally slow down or fail during high demand.
+- The model gets auto-selected per run, so caption tone and image style can shift a bit from one execution to the next.
+- Pollinations.ai (FLUX.1) output is treated as a draft or reference image, not something guaranteed to be publish-ready without a quick human check.
+- The workflow stops at Telegram delivery on purpose. A human still reviews and manually publishes to Instagram instead of the pipeline posting directly.
 
 ---
 
@@ -65,7 +75,7 @@ One implementation detail worth noting: the Merge node uses `combineByPosition`,
 
 - **Workflow Automation:** n8n Cloud / Self-hosted
 - **News Search:** Tavily API
-- **LLM Engine:** OpenRouter — Free Models Router (`openrouter/free`)
+- **LLM Engine:** OpenRouter Free Models Router (`openrouter/free`)
 - **Image Generation:** Pollinations.ai (FLUX.1)
 - **Delivery Endpoint:** Telegram Bot API
 
@@ -81,7 +91,7 @@ One implementation detail worth noting: the Merge node uses `combineByPosition`,
 
 <img src="assets/telegram_message.png" width="400" alt="Screenshot of the delivered Telegram message">
 
-*Actual delivery result in the Telegram review channel — photo sent first, followed by the full caption text.*
+*Actual delivery result in the Telegram review channel. Photo sent first, followed by the full caption text.*
 
 ---
 
@@ -102,10 +112,10 @@ One implementation detail worth noting: the Merge node uses `combineByPosition`,
 
 1. Import `Rumah123 - Weekly Property News to Instagram AI Generator.json` into your n8n workspace.
 2. Configure your credentials:
-   - **Tavily API Key** — replace the `YOUR_TAVILY_API_KEY_HERE` placeholder in the HTTP Request node's body parameters.
-   - **OpenRouter API Key** — set up via n8n's credential store on the OpenRouter Chat Model nodes.
-   - **Telegram Bot Token** — set up via n8n's credential store on the Telegram nodes.
-   - **Telegram Chat ID** — replace the `YOUR_TELEGRAM_CHAT_ID` placeholder in both Telegram nodes.
+   - **Tavily API Key:** replace the `YOUR_TAVILY_API_KEY_HERE` placeholder in the HTTP Request node's body parameters.
+   - **OpenRouter API Key:** set up via n8n's credential store on the OpenRouter Chat Model nodes.
+   - **Telegram Bot Token:** set up via n8n's credential store on the Telegram nodes.
+   - **Telegram Chat ID:** replace the `YOUR_TELEGRAM_CHAT_ID` placeholder in both Telegram nodes.
 3. Activate the workflow for the weekly schedule, or trigger manually via the Webhook node.
 
 ---
