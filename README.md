@@ -20,7 +20,7 @@ graph LR
     I --> J[Telegram: Send Full Caption]
 ```
 
-All four LLM agents (Research, Planner, Image Prompt, Creative Writing) run on OpenRouter's **Free Models Router** (`openrouter/free`) — see [Design Decisions](#-design-decisions--trade-offs) for why.
+All four LLM agents (Research, Planner, Image Prompt, Creative Writing) run on OpenRouter's **Free Models Router** (`openrouter/free`). The reasoning behind this choice is explained in the [Design Decisions](#-design-decisions--trade-offs) section below.
 
 ---
 
@@ -40,28 +40,24 @@ All four LLM agents (Research, Planner, Image Prompt, Creative Writing) run on O
 
 ## 🎯 Design Decisions & Trade-offs
 
-**Why multi-agent instead of one large prompt?**
-Splitting the pipeline into specialized agents (Research → Planner → Image Prompt / Creative Writing) keeps each agent focused on a single, narrow task. This produces more consistent output per stage and avoids the quality degradation that tends to happen when a single model is asked to hold a long context window and juggle multiple unrelated instructions (research synthesis, strategy planning, image prompting, and copywriting all at once).
+The pipeline is split into specialized agents instead of one large prompt (Research → Planner → Image Prompt / Creative Writing) so each agent only has to focus on a single, narrow task. In practice, cramming research synthesis, strategy planning, image prompting, and copywriting into one prompt tends to degrade output quality once the context window gets long. Breaking it up keeps each stage more consistent.
 
-**Why `openrouter/free` instead of a specific model like Gemma?**
-Early iterations pinned a specific free model, which hit rate limits quickly under repeated testing. Switching to `openrouter/free` — OpenRouter's official **Free Models Router** — lets the platform automatically distribute requests across whichever free models are currently available, rather than depending on the capacity of one model/provider. The trade-off is that output consistency can vary slightly between runs, depending on which model gets selected. As an additional safety layer, `maxRetries` is set to `30` on every Chat Model node to absorb transient rate-limit failures.
+Model selection went through a bit of trial and error. The first version pinned a specific free model (Gemma), but it kept hitting rate limits under repeated testing. Switching to `openrouter/free`, OpenRouter's Free Models Router, fixed that: requests now get distributed automatically across whatever free models are available at the time, instead of hammering one model's capacity. The downside is that output can vary slightly between runs since a different model might get picked each time. `maxRetries` is also set to `30` on every Chat Model node as an extra buffer against rate-limit failures.
 
-**Why Tavily for news search?**
-Tavily was chosen for its reliability on this type of real-time news retrieval task, and it's a pattern also used by other n8n creators building similar research-agent workflows.
+Tavily is used for the news search because it's held up reliably for this kind of real-time retrieval task, and it's a pattern several other n8n builders use for similar research-agent setups.
 
-**Why Pollinations.ai instead of a paid image model?**
-This project is intentionally scoped as a proof-of-concept pipeline, built under a no-budget constraint for paid image generation. The generated image is designed to be flexible: it can either be used directly as the final Instagram post image, or serve as a visual reference for a graphic designer to refine, if the pipeline is later upgraded to a paid model with stronger photorealism.
+For image generation, Pollinations.ai was picked mainly because this is currently a proof-of-concept build with no budget for paid image models. The output doesn't have to be the final asset though — it works fine as-is for posting directly, or as a reference image a graphic designer can refine if the project later moves to a paid model with better photorealism.
 
-**Merge strategy note:** The Merge node uses `combineByPosition`, meaning the Image Prompt Agent branch and Creative Writing Agent branch (which run in parallel from the Planner Agent) must stay in sync by item order for the photo and caption to pair up correctly.
+One implementation detail worth noting: the Merge node uses `combineByPosition`, so the Image Prompt Agent branch and Creative Writing Agent branch (which run in parallel off the Planner Agent) need to stay in sync by item order, otherwise the photo and caption could get mismatched.
 
 ---
 
 ## ⚠️ Known Limitations
 
-- **Free-tier rate limits:** Even with `openrouter/free` and `maxRetries: 30`, free-model capacity is shared and can occasionally cause slower runs or failed executions during high demand.
-- **Output consistency:** Because the underlying model is auto-selected per run, caption tone and image style can vary slightly between executions.
-- **Image quality ceiling:** Pollinations.ai (FLUX.1) output is treated as a draft/reference image, not guaranteed to be publish-ready without a human review step.
-- **Manual final review required:** The workflow stops at Telegram delivery by design — a human reviews and manually publishes to Instagram, rather than the pipeline auto-posting.
+- **Free-tier rate limits:** even with `openrouter/free` and `maxRetries: 30`, free-model capacity is shared across everyone using it, so runs can occasionally slow down or fail during high demand.
+- **Output consistency:** since the model is auto-selected per run, caption tone and image style can shift a bit from one execution to the next.
+- **Image quality ceiling:** Pollinations.ai (FLUX.1) output is treated as a draft or reference image, not something guaranteed to be publish-ready without a quick human check.
+- **No auto-posting:** the workflow stops at Telegram delivery on purpose. A human still reviews and manually publishes to Instagram instead of the pipeline posting directly.
 
 ---
 
@@ -101,4 +97,4 @@ This project is intentionally scoped as a proof-of-concept pipeline, built under
 
 ## 👤 Author
 
-Aqil Fauzi — AI Test submission for 99 Group.
+Aqil Fauzi, AI Test submission for 99 Group.
